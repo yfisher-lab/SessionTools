@@ -1,0 +1,21 @@
+name: SessionTools
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - dask
+  - h5py
+  - numpy
+  - pandas
+  - pip
+  - pytables
+  - python
+  - scikit-image
+  - scipy
+  - tifffile
+  - yapf
+  - ipython
+  - jupyterlab
+  - setuptools
+  - pip:
+      - -e .
