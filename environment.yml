@@ -17,5 +17,6 @@ dependencies:
   - ipython
   - jupyterlab
   - setuptools
+  - matplotlib
   - pip:
       - -e .
