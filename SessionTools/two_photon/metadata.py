@@ -123,7 +123,7 @@ def read_main_xml(fname):
                               1: preamp_subindex.find('.//SubindexedValue[@subindex="1"]').attrib['value']}
     
     
-    # get all frame times
+    # get all frame times 
     for seq in sequences:
         _frame_times = []
         frames = seq.findall('Frame')
@@ -235,7 +235,7 @@ def read_mp_xml(fname):
     
     
     
-def read(basename_input, dirname_output):
+def read(basename_input, output_fname=None):
     """Read in metdata from XML files."""
     fname_xml = basename_input.with_suffix('.xml')
     fname_vr_xml = pathlib.Path(str(basename_input) + '_Cycle00001_VoltageRecording_001').with_suffix('.xml')
@@ -244,7 +244,7 @@ def read(basename_input, dirname_output):
     if not os.path.exists(fname_xml):
         raise MetadataError("metadata file %s does not exist"  % str(fname_xml))
     
-    fname_metadata = dirname_output / 'metadata.json'
+    
 
     logger.info('Extracting metadata from xml files:\n%s', fname_xml)
     scan_data = read_main_xml(fname_xml)
@@ -269,9 +269,10 @@ def read(basename_input, dirname_output):
         'mark_points': mp_data,
         }
         
-    with open(fname_metadata, 'w') as fout:
-        json.dump(metadata, fout, indent=4, sort_keys=True)
+    if output_fname is not None:
+        with open(output_fname, 'w') as fout:
+            json.dump(metadata, fout, indent=4, sort_keys=True)
         
-    logger.info('Metadata written to: %s\n', fname_metadata)
+        logger.info('Metadata written to: %s\n', output_fname)
     
     return metadata

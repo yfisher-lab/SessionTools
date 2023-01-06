@@ -29,6 +29,7 @@ def read(base, size, layout):
             return imread(file)
         
     filenames = []
+    # 
     for cycle in range(1,num_cycles+1):
         _filenames = []
         for frame in range(1,num_z_planes+1):
@@ -37,7 +38,9 @@ def read(base, size, layout):
                 _frame.append(str(base) + f'_Cycle{cycle:05d}_Ch{ch}_{frame:06d}.ome.tif')
             _filenames.append(_frame)
         # filenames[cycle].append(str(basename_input) + f'_Cycle{cycle+1:05d}_Ch{channel}_{frame+1:06d}.ome.tif')
-        filenames.append(_filenames)    
+        filenames.append(_filenames)
+    # replace first tiff to avoid sizing errors
+    filenames[0][0][0] = filenames[0][1][0]    
         
     
     logger.info('Found tiff files (channels: %i, frames: %i, z_planes: %i' % (num_cycles, num_z_planes, num_ch))
@@ -63,7 +66,7 @@ def read(base, size, layout):
     return data
 
 
-def convert_to_hdf5(data, hdf5_outname, hdf5_key = '/data', overwrite=True):
+def convert_to_hdf5(data, hdf5_outname, hdf5_key = '/data', overwrite=False):
     """_summary_
 
     Args:
