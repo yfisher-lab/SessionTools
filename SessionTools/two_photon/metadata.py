@@ -43,6 +43,7 @@ def read_main_xml(fname):
         'preamp_offsets': {},
         'scan_mode': None,
         'bit_depth': None,
+        'frame_times': []
         }
     
     if fname is None:
@@ -120,6 +121,21 @@ def read_main_xml(fname):
     preamp_subindex = mdata_root.find('.//PVStateValue[@key="preampOffset"]/SubindexedValues[@index="0"]')
     data['preamp_offsets'] = {0: preamp_subindex.find('.//SubindexedValue[@subindex="0"]').attrib['value'],
                               1: preamp_subindex.find('.//SubindexedValue[@subindex="1"]').attrib['value']}
+    
+    
+    # get all frame times
+    for seq in sequences:
+        _frame_times = []
+        frames = seq.findall('Frame')
+        for frame in frames:
+            _frame_times.append(float(frame.attrib['relativeTime']))
+        data['frame_times'].append(_frame_times)
+    
+    # if last sequence is funky
+    num_frames_last_sequence = len(sequences[-1].findall('Frame'))
+    if data['layout']['frames_per_sequence'] != num_frames_last_sequence:
+        _ = data['frame_times'].pop()
+    
     
     return data
     
