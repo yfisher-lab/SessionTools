@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - python=3.10
   - dask
   - h5py
   - numpy
@@ -10,7 +11,7 @@ dependencies:
   - pip
   - pytables
   - python
-  - scikit-image
+  - scikit-image==0.
   - scipy
   - tifffile
   - yapf
@@ -18,5 +19,6 @@ dependencies:
   - jupyterlab
   - setuptools
   - matplotlib
+  - napari
   - pip:
       - -e .
