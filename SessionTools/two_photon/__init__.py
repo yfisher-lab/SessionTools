@@ -1,3 +1,3 @@
 from SessionTools import utilities
-from . import metadata, tiff_tools #, motion_correction
+from . import metadata, tiff_tools, motion_correction
 
