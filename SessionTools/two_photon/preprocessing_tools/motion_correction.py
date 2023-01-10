@@ -13,7 +13,7 @@ from scipy.ndimage import shift as spshift
 import SessionTools as st
 
 
-def make_ref_img(data, channel):
+def make_ref_img(data, ref_channel):
     
     ref_intervals = np.arange(0,data.shape[1],round(data.shape[1]/10)).tolist()
     ref_frames = []
@@ -22,11 +22,11 @@ def make_ref_img(data, channel):
             ref_frames.append(frame+i)
         
     ref_stack = data[:, ref_frames,:,:,:]
-    ref_img = skimage.img_as_float(ref_stack[channel,:,:,:,:].mean(axis=0))
+    ref_img = skimage.img_as_float(ref_stack[ref_channel,:,:,:,:].mean(axis=0))
     ref_stack, _, _, _ = align_data_chunk(ref_stack, ref_img, 
-                                        ref_channel=channel, 
+                                        ref_channel=ref_channel, 
                                         in_place=True)
-    return ref_stack[channel,:,:,:,:].mean(axis=0)
+    return ref_stack.mean(axis=1)
     
 
 def align_data_chunk(data_chunk, ref_img, ref_channel=0, in_place=True):
