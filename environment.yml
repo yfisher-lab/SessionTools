@@ -11,7 +11,7 @@ dependencies:
   - pip
   - pytables
   - python
-  - scikit-image==0.
+  - scikit-image
   - scipy
   - tifffile
   - yapf
