@@ -1,6 +1,8 @@
 import sys
 import os
 
+import numpy as np
+
 class suppress_output:
     def __init__(self, suppress_stdout=False, suppress_stderr=False):
         self.suppress_stdout = suppress_stdout
@@ -23,3 +25,29 @@ class suppress_output:
             sys.stdout = self._stdout
         if self.suppress_stderr:
             sys.stderr = self._stderr
+            
+# @njit
+def cart2pol(x, y):
+    '''
+    cartesian to polar coordinates
+    :param x:
+    :param y:
+    :return: rho: length of vector
+             phi: angle of vector
+    '''
+    rho = np.sqrt(x**2 + y**2)
+    phi = np.arctan2(y,x)
+    return rho, phi
+
+# @njit
+def pol2cart(rho, phi):
+    '''
+    polar to cartesian coordinates
+
+    :param rho: vector length
+    :param phi: angle
+    :return:
+    '''
+    x = rho * np.cos(phi)
+    y = rho * np.sin(phi)
+    return x, y

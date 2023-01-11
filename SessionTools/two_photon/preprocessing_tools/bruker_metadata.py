@@ -251,14 +251,14 @@ def read(basename_input, output_fname=None):
     
     if not os.path.exists(fname_vr_xml):
         vr_data = read_vr_xml(None)
-        raise MetadataWarning("voltage recording file %s does not exist, skipping" % fname_vr_xml)
+        MetadataWarning("voltage recording file %s does not exist, skipping" % fname_vr_xml)
     else:
         logger.info('\n%s' % fname_vr_xml)
         vr_data = read_vr_xml(fname_vr_xml)
         
     if not os.path.exists(fname_mp_xml):
         mp_data = read_mp_xml(None)
-        raise MetadataWarning("mark points file %s does not exist, skipping" % fname_mp_xml)
+        MetadataWarning("mark points file %s does not exist, skipping" % fname_mp_xml)
     else:
         mp_data = read_mp_xml(fname_mp_xml)
         

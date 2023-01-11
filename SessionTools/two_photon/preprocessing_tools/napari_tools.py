@@ -24,12 +24,13 @@ class EllipsoidBodySession:
         self._com = None
         self._phase_donut = None
         self._phase_bin_edges = None
+        self.phase_bin_centers = None
         self.masks = None
     
     
     def open_existing_session(self, filename):
         
-        with open(filename, 'r') as file:
+        with open(filename, 'rb') as file:
             napari_layers = cloudpickle.load(file)    
         
         self.ref_img = napari_layers['ref_img']
@@ -38,12 +39,18 @@ class EllipsoidBodySession:
         self.img_size = self.ref_img.shape[-2:]
         
         self.viewer = napari.view_image(napari_layers['ref_ch1'], name = 'ref_ch1')
-        for ch in range(1,napari['n_ch']):
+        self.viewer.add_image(napari_layers['ref_ch1'].max(axis=0), name = 'ref_ch1_maxp')
+        for ch in range(1,napari_layers['n_ch']):
             _ch = ch+1
             self.viewer.add_image(napari_layers[f'ref_ch{_ch}'], name = f'ref_ch{_ch}')
+            self.viewer.add_image(napari_layers[f'ref_ch{_ch}'].max(axis=0), name = f'ref_ch{_ch}_maxp')
+            
+        
         
         self._add_rings(inner_ring_data=napari_layers['inner_ring'],
                         outer_ring_data=napari_layers['outer_ring'])
+        
+        self.make_phase_masks()
         
         
         
@@ -55,10 +62,12 @@ class EllipsoidBodySession:
         self.img_size = ref_img.shape[-2:]
         
         self.viewer = napari.view_image(np.squeeze(ref_img[0,:,:,:]), name = 'ref_ch1' )
+        self.viewer.add_image(ref_img[0,:,:,:].max(axis=0), name = 'ref_ch1_maxp')
         if self.n_ch>1:
             for ch in range(1,self.n_ch):
                 _ch = ch+1
-                self.viewer.add_image(np.squeeze(ref_img[1,:,:,:]), name = f'ref_ch{_ch}')
+                self.viewer.add_image(np.squeeze(ref_img[ch,:,:,:]), name = f'ref_ch{_ch}')
+                self.viewer.add_image(np.squeeze(ref_img[ch,:,:,:]).max(axis=0), name = f'ref_ch{_ch}_maxp')
         self._add_rings()
         return self
         
@@ -112,6 +121,8 @@ class EllipsoidBodySession:
     
         self.viewer.add_labels(self.masks.astype(int), name='rois')
         self.rois = self.viewer.layers['rois']
+        self.phase_bin_centers = self._phase_bin_edges[:-1] + self._phase_bin_edges[1:]
+        self.phase_bin_centers /= 2.
         
     def save_layers(self, filename):
         napari_layers = {layer.name: layer.data for layer in self.viewer.layers}
