@@ -52,31 +52,31 @@ def falling_edges(binary_signals, axis=0, prepend=0, append=None):
 
  
 def change_default_column_names(df):   
-    df.rename(columns = { ' Input 0': 'start_trigger',
-                          ' Input 1': 'opto_trigger',
-                          ' Input 2': 'fictrac_cam_exp',
-                          ' Input 3': 'fictrac_frame_proc',
-                          ' Input 4': 'heading',
-                          ' Input 5': 'index',
-                          ' Input 6': 'arena_heading',
-                          ' Input 7': 'arena_index'},
+    df.rename(columns = { ' Input 0': ' Start Trigger',
+                          ' Input 1': ' Opto Trigger',
+                          ' Input 2': ' FicTrac Cam Exp.',
+                          ' Input 3': ' Fictrac Frame Proc.',
+                          ' Input 4': ' Heading',
+                          ' Input 5': ' Y/Index',
+                          ' Input 6': ' Arena DAC1',
+                          ' Input 7': ' Arena DAC2'},
               inplace=True)
         
     
 def align_vr_2p(vr_df,frame_times):
     
-    if ' Input 0' in vr_df.columns:
+    if ' Input 7' in vr_df.columns:
         change_default_column_names(vr_df)
         
-    binary_columns = ['start_trigger', 
-                  'opto_trigger', 
-                  'fictrac_cam_exp',
-                  'fictrac_frame_proc']
+    binary_columns = [' Start Trigger', 
+                  ' Opto Trigger', 
+                  ' FicTrac Cam Exp.',
+                  ' FicTrac Frame Proc.']
     
-    periodic_columns = ['heading', 
-                        'index', 
-                        'arena_heading', 
-                        'arena_index']
+    periodic_columns = [' Heading', 
+                        ' Y/Index', 
+                        ' Arena DAC1', 
+                        ' Arena DAC2']
     max_voltage = 10
     
     # binarize trigger columns and find rising edges

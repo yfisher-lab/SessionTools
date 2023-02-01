@@ -15,11 +15,14 @@ import SessionTools as st
 
 def make_ref_img(data, ref_channel):
     
-    ref_intervals = np.arange(0,data.shape[1],round(data.shape[1]/10)).tolist()
+    # print(data.shape)
+    ref_intervals = np.arange(0,data.shape[1]-21,round(data.shape[1]/10)).tolist()
+    # print(ref_intervals)
     ref_frames = []
     for frame in ref_intervals:
         for i in range(20):
             ref_frames.append(frame+i)
+    # print(ref_frames)
         
     ref_stack = data[:, ref_frames,:,:,:]
     ref_img = skimage.img_as_float(ref_stack[ref_channel,:,:,:,:].mean(axis=0))
