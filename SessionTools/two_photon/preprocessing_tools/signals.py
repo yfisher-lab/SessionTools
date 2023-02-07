@@ -84,6 +84,11 @@ def align_vr_2p(vr_df,frame_times):
     
     vr_times = vr_df['Time(ms)'].to_numpy().ravel()
     
+    #ToDo: make sure this isn't going to screw up a bunch of stuff
+    #  add warning if difference is more than 1 frame
+    max_time = np.max([vr_times[-1],frame_times[-1]])
+    vr_times[-1] = max_time
+    
     # allocate downsampled dataframe
     ds_vr_df = pd.DataFrame(columns = vr_df.columns, index=np.arange(frame_times.shape[0]))
     ds_vr_df['Time(ms)'] = frame_times
@@ -119,7 +124,7 @@ def align_vr_2p(vr_df,frame_times):
 def stim_artifact_frames(aligned_voltage_recording):
     pass
 
-def extract_2p_timeseries(data, masks, n_rois):
+def extract_2p_timeseries(data, masks, n_rois, max_proj = True):
     n_ch = data.shape[0]
     n_timepoints = data.shape[1]
     
@@ -127,8 +132,12 @@ def extract_2p_timeseries(data, masks, n_rois):
     
     for r in range(n_rois):
         mask = masks==r+1
+        # mask = np.ma.masked_equql(masks,r+1)
         for ch, fr in itertools.product(range(n_ch),range(n_timepoints)):
             frame = data[ch, fr, :, :, :]
+            # if max_proj:
+            #     frame = np.ma.masked_where(masks==r+1,frame)
+            #     F[ch,r,fr] = np.amax(frame,axis=0).ravel().mean()
             F[ch, r, fr] = frame[mask].mean()
     return F
 
