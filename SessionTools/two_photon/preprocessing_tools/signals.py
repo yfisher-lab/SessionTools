@@ -131,14 +131,16 @@ def extract_2p_timeseries(data, masks, n_rois, max_proj = True):
     F = np.zeros((n_ch, n_rois, n_timepoints))
     
     for r in range(n_rois):
+        print(r)
         mask = masks==r+1
-        # mask = np.ma.masked_equql(masks,r+1)
+        # mask = np.ma.masked_equal(masks,r+1)
         for ch, fr in itertools.product(range(n_ch),range(n_timepoints)):
             frame = data[ch, fr, :, :, :]
-            # if max_proj:
-            #     frame = np.ma.masked_where(masks==r+1,frame)
-            #     F[ch,r,fr] = np.amax(frame,axis=0).ravel().mean()
-            F[ch, r, fr] = frame[mask].mean()
+            if max_proj:
+                frame = np.ma.masked_where(masks==r+1,frame)
+                F[ch,r,fr] = np.amax(frame,axis=0).ravel().mean()
+            else:
+                F[ch, r, fr] = frame[mask].mean()
     return F
 
 
