@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class TiffToolsError(Exception):
     """Error while processing tiff files"""
 
-def read(base, size, layout):
+def read(base, size, layout, first_chan=1):
     """Read 2p dataset of TIFF files into a dask.Array."""
     # shape_yx = (size['y_px'], size['x_px'])
     # dtype = read_file(base, 0, channel, 0).dtype
@@ -34,12 +34,16 @@ def read(base, size, layout):
         _filenames = []
         for frame in range(1,num_z_planes+1):
             _frame = []
-            for ch in range(1,num_ch+1):
-                _frame.append(str(base) + f'_Cycle{cycle:05d}_Ch{ch}_{frame:06d}.ome.tif')
+            if num_ch == 1:
+                _frame.append(str(base) + f'_Cycle{cycle:05d}_Ch{first_chan}_{frame:06d}.ome.tif')
+            else:
+                for ch in range(1,num_ch+1):
+                    _frame.append(str(base) + f'_Cycle{cycle:05d}_Ch{ch}_{frame:06d}.ome.tif')
             _filenames.append(_frame)
         # filenames[cycle].append(str(basename_input) + f'_Cycle{cycle+1:05d}_Ch{channel}_{frame+1:06d}.ome.tif')
         filenames.append(_filenames)
     # replace first tiff to avoid sizing errors
+    # print(filenames[0])
     filenames[0][0][0] = filenames[0][1][0]    
         
     

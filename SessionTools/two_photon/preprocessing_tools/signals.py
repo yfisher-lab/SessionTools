@@ -141,7 +141,17 @@ def extract_2p_timeseries(data, masks, n_rois, max_proj = True):
                 F[ch,r,fr] = np.amax(frame,axis=0).ravel().mean()
             else:
                 F[ch, r, fr] = frame[mask].mean()
-    return F
+                
+    notF = np.zeros((n_ch, n_timepoints))
+    mask = masks>0
+    for ch, fr in itertools.product(range(n_ch),range(n_timepoints)):
+            frame = data[ch, fr, :, :, :]
+            if max_proj:
+                frame = np.ma.masked_where(masks==r+1,frame)
+                notF[ch,fr] = np.amax(frame,axis=0).ravel().mean()
+            else:
+                notF[ch, fr] = frame[mask].mean()
+    return F, notF
 
 
 def dff(func_data, baseline_data=None, axis=1):
