@@ -213,7 +213,10 @@ def read_mp_xml(fname):
     data['trigger_freq'] = mpe['TriggerFrequency']
     data['trigger_count'] = int(mpe['TriggerCount'])
     data['uncaging_power'] = int(mpe['UncagingLaserPower'])
-    data['custom_laser_power'] = [float(p)/16384.*1000 for p in mpe['CustomLaserPower'].split(',')]
+    try:
+        data['custom_laser_power'] = [float(p)/16384.*1000 for p in mpe['CustomLaserPower'].split(',')]
+    except:
+        pass
     
     gpe = markpoints_root.find('PVMarkPointElement/PVGalvoPointElement').attrib
     data['initial_delay'] = float(gpe['InitialDelay'])
