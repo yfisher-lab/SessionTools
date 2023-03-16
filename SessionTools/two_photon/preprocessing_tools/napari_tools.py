@@ -96,7 +96,7 @@ class EllipsoidBodySession:
                 self._com[z,:] = sp.ndimage.center_of_mass(plane)
         
         
-    def make_phase_masks(self):
+    def make_phase_masks(self, n_rois=16):
         
         self._phase_mat = np.nan*np.zeros(self.inner_ring.data.shape)
         self._get_inner_ring_com()
@@ -113,7 +113,7 @@ class EllipsoidBodySession:
         self._phase_donut[inds] = self._phase_mat[inds]
         
         self.masks = np.zeros(self.ref_img.shape[1:])
-        self._phase_bin_edges = np.linspace(-1E-3,2*np.pi+1E-3, num=17)
+        self._phase_bin_edges = np.linspace(-1E-3,2*np.pi+1E-3, num=n_rois+1)
         for mask_i, (ledge, redge) in enumerate(zip(self._phase_bin_edges[:-1].tolist(),
                                                     self._phase_bin_edges[1:].tolist())):
             bin_inds = (self._phase_donut>=ledge) & (self._phase_donut<redge)
