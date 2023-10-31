@@ -65,6 +65,7 @@ def change_default_column_names(df):
     
 def align_vr_2p(vr_df,frame_times):
     
+    # backwards compatibility
     if ' Input 7' in vr_df.columns:
         change_default_column_names(vr_df)
         
@@ -74,9 +75,11 @@ def align_vr_2p(vr_df,frame_times):
                   ' FicTrac Frame Proc.']
     
     periodic_columns = [' Heading', 
-                        ' Y/Index', 
-                        ' Arena DAC1', 
-                        ' Arena DAC2']
+                        # ' Y/Index', 
+                        ' Arena DAC1']#, 
+                        # ' Arena DAC2']
+    
+    orig_columns = [' Y/Index', ' Arena DAC2']
     max_voltage = 10
     
     # binarize trigger columns and find rising edges
@@ -97,6 +100,9 @@ def align_vr_2p(vr_df,frame_times):
     # take cummulative sum, take nearest value, then take difference
     interp_nearest = sp_interp1d(vr_times, np.cumsum(vr_df[binary_columns],axis=0), axis=0, kind='nearest')
     ds_vr_df[binary_columns] = np.diff(interp_nearest(frame_times),axis=0, prepend=0)
+    
+    interp_nearest = sp_interp1d(vr_times, vr_df[orig_columns], axis=0, kind='nearest')
+    ds_vr_df[orig_columns] = interp_nearest(frame_times)
     
     # interpolate periodic columns
     # convert to cartesian coordinates to be able to take the average
@@ -122,9 +128,9 @@ def align_vr_2p(vr_df,frame_times):
     
 
 def stim_artifact_frames(aligned_voltage_recording):
-    pass
+    raise NotImplementedError
 
-def extract_2p_timeseries(data, masks, n_rois, max_proj = True):
+def extract_2p_timeseries(data, masks, n_rois, bckgnd_mask=None,  max_proj = True):
     n_ch = data.shape[0]
     n_timepoints = data.shape[1]
     
@@ -142,21 +148,26 @@ def extract_2p_timeseries(data, masks, n_rois, max_proj = True):
             else:
                 F[ch, r, fr] = frame[mask].mean()
                 
+    
     notF = np.zeros((n_ch, n_timepoints))
-    mask = masks>0
+    if bckgnd_mask is None:
+        bckgnd_mask = masks<1
+    else:
+        bckgnd_mask = bckgnd_mask>0
+    
     for ch, fr in itertools.product(range(n_ch),range(n_timepoints)):
             frame = data[ch, fr, :, :, :]
-            if max_proj:
-                frame = np.ma.masked_where(masks==r+1,frame)
-                notF[ch,fr] = np.amax(frame,axis=0).ravel().mean()
-            else:
-                notF[ch, fr] = frame[mask].mean()
+            # if max_proj:
+            #     frame = np.ma.masked_where(masks==r+1,frame)
+            #     notF[ch,fr] = np.amax(frame,axis=0).ravel().mean()
+            # else:
+            notF[ch, fr] = frame[bckgnd_mask].mean()
     return F, notF
 
 
 def dff(func_data, baseline_data=None, axis=1):
-    
-    if baseline_data is None:
-        baseline_data = np.copy(func_data)
+    raise NotImplementedError
+    # if baseline_data is None:
+    #     baseline_data = np.copy(func_data)
         
     

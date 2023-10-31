@@ -222,7 +222,7 @@ def read_mp_xml(fname):
     data['initial_delay'] = float(gpe['InitialDelay'])
     data['inter_point_delay'] = float(gpe['InterPointDelay'])
     data['duration'] = float(gpe['Duration'])
-    data['spiral_revolutions'] = int(gpe['SpiralRevolutions'])
+    data['spiral_revolutions'] = float(gpe['SpiralRevolutions'])
     data['indices'] = gpe['Indices']
     
     data['points_list'] = [p.attrib for p in markpoints_root.findall('PVMarkPointElement/PVGalvoPointElement/Point')]

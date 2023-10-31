@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class TiffToolsError(Exception):
     """Error while processing tiff files"""
 
-def read(base, size, layout, first_chan=1):
+def read(base, size, layout, first_chan=1,):
     """Read 2p dataset of TIFF files into a dask.Array."""
     # shape_yx = (size['y_px'], size['x_px'])
     # dtype = read_file(base, 0, channel, 0).dtype
@@ -28,43 +28,89 @@ def read(base, size, layout, first_chan=1):
         with utilities.suppress_output(suppress_stderr=True):
             return imread(file)
         
+    if num_cycles == 1:
+        cycle = 1
+        frame=2
+    else:
+        cycle = 2
+        frame =1
+    
+    # ch = first_chan
+    sample = skimread(str(base) + f'_Cycle{cycle:05d}_Ch{first_chan}_{frame:06d}.ome.tif')
+    # print(sample)
+    print(sample.shape)
+    if len(sample.shape)==2:
+        ome_tiff=False
+    elif len(sample.shape)==3:
+        ome_tiff=True
+    else:
+        raise "tiff of unknown shape"
+        
+                      
     filenames = []
-    # 
-    for cycle in range(1,num_cycles+1):
-        _filenames = []
-        for frame in range(1,num_z_planes+1):
-            _frame = []
-            if num_ch == 1:
-                _frame.append(str(base) + f'_Cycle{cycle:05d}_Ch{first_chan}_{frame:06d}.ome.tif')
-            else:
-                for ch in range(1,num_ch+1):
+    if not ome_tiff:
+        for cycle in range(1,num_cycles+1):
+            _filenames = []
+            for frame in range(1,num_z_planes+1):
+                _frame = []
+                for ch in range(first_chan,num_ch+first_chan+1):
                     _frame.append(str(base) + f'_Cycle{cycle:05d}_Ch{ch}_{frame:06d}.ome.tif')
-            _filenames.append(_frame)
-        # filenames[cycle].append(str(basename_input) + f'_Cycle{cycle+1:05d}_Ch{channel}_{frame+1:06d}.ome.tif')
-        filenames.append(_filenames)
-    # replace first tiff to avoid sizing errors
-    # print(filenames[0])
-    filenames[0][0][0] = filenames[0][1][0]    
+                _filenames.append(_frame)
+            # filenames[cycle].append(str(basename_input) + f'_Cycle{cycle+1:05d}_Ch{channel}_{frame+1:06d}.ome.tif')
+            filenames.append(_filenames)    
+        filenames[0][0][0] = filenames[0][1][0]    
+    else:
+        frame=1
+        for cycle in range(1,num_cycles+1):
+            _filenames = []
+            for ch in range(first_chan,num_ch+first_chan+1):
+                _frame = str(base) + f'_Cycle{cycle:05d}_Ch{ch}_{frame:06d}.ome.tif'
+                _filenames.append(_frame)
+            # filenames[cycle].append(str(basename_input) + f'_Cycle{cycle+1:05d}_Ch{channel}_{frame+1:06d}.ome.tif')
+            filenames.append(_filenames)   
+        
+        
         
     
     logger.info('Found tiff files (channels: %i, frames: %i, z_planes: %i' % (num_cycles, num_z_planes, num_ch))
     
-    def read_one_image(block_id, filenames=filenames):
+    def read_one_image(block_id, filenames=filenames, error_shape=None):
         # print(block_id)
         path = filenames[block_id[1]][block_id[2]][block_id[0]]
-        image = skimread(path)
+        try:
+            image = skimread(path)
+        except:
+            print(f'\n error reading {path}')
+            image = skimread(filenames[0][0][0])
         return np.expand_dims(image, axis=(0,1,2))
     
+    def read_one_image_ome(block_id, filenames=filenames):
+        # print(block_id)
+        path = filenames[block_id[1]][block_id[0]]
+        image = skimread(path)
+        return np.expand_dims(image, axis=(0,1))
+    
     logger.info('Mapping dask array...')
-    sample = skimread(filenames[0][0][0])
-    data = da.map_blocks(
-        read_one_image,
-        dtype=sample.dtype,
-        chunks=((1,)*num_ch,
-                (1,)*num_cycles, 
-                (1,)*num_z_planes, 
-                *sample.shape)
-        )
+    if not ome_tiff:
+        sample = skimread(filenames[0][0][0])
+        data = da.map_blocks(
+            read_one_image,
+            dtype=sample.dtype,
+            chunks=((1,)*num_ch,
+                    (1,)*num_cycles, 
+                    (1,)*num_z_planes, 
+                    *sample.shape)
+            )
+        
+    else:
+        sample = skimread(filenames[0][0])
+        data = da.map_blocks(
+            read_one_image_ome,
+            dtype=sample.dtype,
+            chunks=((1,)*num_ch,
+                    (1,)*num_cycles,  
+                    *sample.shape)
+            )
     logger.info('Completed mapping dask array')
     
     return data
