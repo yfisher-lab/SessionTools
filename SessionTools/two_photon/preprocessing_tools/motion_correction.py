@@ -37,9 +37,6 @@ def align_data_chunk(data_chunk, ref_img, ref_channel=0, in_place=True):
     n_ch = data_chunk.shape[0]
     chunk_size, n_zplanes = data_chunk.shape[1], data_chunk.shape[2]
     
-    # shift = np.nan*np.zeros((2, chunk_size, n_zplanes))
-    # error = np.nan*np.zeros((chunk_size, n_zplanes))
-    # diffphase = np.nan*np.zeros((chunk_size, n_zplanes))
     
     def compute_shift(f,z):
         frame = skimage.img_as_float(data_chunk[ref_channel, f, z, :, :])

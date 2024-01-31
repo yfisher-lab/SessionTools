@@ -5,6 +5,8 @@ import scipy as sp
 import napari
 import cloudpickle
 
+# add abstract base class for napari wrappers
+
 
 class EllipsoidBodySession:
     
@@ -137,12 +139,15 @@ class EllipsoidBodySession:
         self.phase_bin_centers = self._phase_bin_edges[:-1] + self._phase_bin_edges[1:]
         self.phase_bin_centers /= 2.
         
-    def save_layers(self, filename):
+    def save_layers(self, filename, return_layers=False):
         napari_layers = {layer.name: layer.data for layer in self.viewer.layers}
         napari_layers['n_ch'] = self.n_ch
         napari_layers['ref_img'] = self.ref_img
         with open(filename, 'wb') as file:
             cloudpickle.dump(napari_layers,file)
+            
+        if return_layers:
+            return napari_layers
         
         
         
