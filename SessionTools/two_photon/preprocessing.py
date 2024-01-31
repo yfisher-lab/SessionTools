@@ -113,11 +113,13 @@ class Preprocess(ABC):
         self.voltage_recording_aligned = signals.align_vr_2p(df,frame_times)
             
     
+    @abstractmethod
     def save(self):
         raise NotImplementedError
         
     
     @classmethod
+    @abstractmethod
     def from_file(filename):
         pass
     
