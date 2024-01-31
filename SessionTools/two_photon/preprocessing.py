@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
 import pathlib
 from glob import glob
-
+import itertools
 
 import dask.dataframe as dd
 import h5py
 import numpy as np
+import napari
 
 from .preprocessing_tools import *
 
@@ -68,13 +69,10 @@ class Preprocess(ABC):
         
            
     @property
-    def data(self, inds=()):
+    def data(self):
         # add that it looks for motion corrected h5 file
         with h5py.File(self.h5path_raw, 'r') as f:
-            if len(inds)>0:
-                return f['/data'][*inds]
-            else:
-                return f['/data'][:]
+            return f['/data'][:]
         
         
     
@@ -95,12 +93,9 @@ class Preprocess(ABC):
         
         
     @property
-    def data_corr(self, inds=()):
+    def data_corr(self):
         with h5py.File(self.h5path_motcorr, 'r') as f:
-            if len(inds)>0:
-                return f['/data'][*inds]
-            else:
-                return f['/data'][:]
+            return f['/data'][:]
         
     
     def align_voltage_recording(self):
@@ -115,7 +110,7 @@ class Preprocess(ABC):
     
     @abstractmethod
     def save(self):
-        raise NotImplementedError
+        pass
         
     
     @classmethod
@@ -128,15 +123,88 @@ class Preprocess(ABC):
         pass
     
     @abstractmethod
-    def save_napari(self, overwrite=True):
-        pass
-    
-    @abstractmethod
     def extract_timeseries(self):
         pass
     
-    @abstractmethod
-    def calculate_dff(self):
-        pass
+
+class EBImagingSession(Preprocess):
+    
+    
+    def save(self):
+        raise NotImplementedError
+        
+    @classmethod
+    def from_file(cls, filename):
+        raise NotImplementedError
+    
+    
+    def open_napari(self, check_for_existing=True, path=None):
+        if check_for_existing:
+            if path is None:
+                pass
+            if pathlib.Path.exists():
+                return napari_tools.EBSession().open_existing_session(path)
+            else:
+                return napari_tools.EBSession().new_session(self.ref_img)
+        else:
+            return napari_tools.EBSession().new_session(self.ref_img)
+    
+    def save_napari(self, nap, overwrite=True):
+        nap.save_layers(self.napari_output_path)
+    
+    def get_labels_layers(self, nap):
+        self.napari_layers = {}
+        for layer in nap.viewer.layers: 
+            if isinstance(layer, napari.layers.Labels):
+                self.nap_layers[layer.name] = layer.data
+        
+
+    def extract_timeseries(self, data_shape):
+        self.timeseries = {}
+        n_ch = data_shape[0]
+        n_timepoints = data_shape[1]
+        
+        def _extract_ts(masks):
+            n_rois = int(np.amax(masks.ravel()))
+            F = np.zeros((n_ch, n_rois, n_timepoints))
+            for r in range(n_rois):
+                mask = masks==r+1
+                
+                for ch, fr in itertools.product(range(n_ch), range(n_timepoints)):
+                    
+                    frame = data[ch, fr, :, :, :]
+                    F[ch,r,fr] = frame[mask].mean()
+            return F
+        
+        for name, data in self.napari_layers.items():
+            self.timeseries[name]=_extract_ts(data)
+            
+            
+        
+        
+    
+    
+class ColumnarRingImagingSession(EBImagingSession):
+    
+   
+    def open_napari(self, check_for_existing=True, path=None):
+        if check_for_existing:
+            if path is None:
+                pass
+            if pathlib.Path.exists():
+                return napari_tools.EB_R4d_Session().open_existing_session(path)
+            else:
+                return napari_tools.EB_R4d_Session().new_session(self.ref_img)
+        else:
+            return napari_tools.EB_R4d_Session().new_session(self.ref_img)
+        
     
 
+class ExVivoRingImagingSession(EBImagingSession):
+    
+    
+    def open_napari(self, check_for_existing=True):
+        raise NotImplementedError
+    
+    
+    
