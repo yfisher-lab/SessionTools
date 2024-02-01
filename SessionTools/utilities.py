@@ -51,3 +51,8 @@ def pol2cart(rho, phi):
     x = rho * np.cos(phi)
     y = rho * np.sin(phi)
     return x, y
+
+def validate_dict_keys(input_dict, required_keys):
+    for key in required_keys:
+        if key not in input_dict:
+            raise ValueError(f"Missing required key: {key}")

@@ -8,7 +8,7 @@ import cloudpickle
 # add abstract base class for napari wrappers
 
 
-class EllipsoidBodySession:
+class EBSession:
     
     def __init__(self) -> None:
         
@@ -28,6 +28,7 @@ class EllipsoidBodySession:
         self._phase_bin_edges = None
         self.phase_bin_centers = None
         self.masks = None
+        
     
     
     def open_existing_session(self, filename):
@@ -59,6 +60,7 @@ class EllipsoidBodySession:
                             background=None)
         
         self.make_phase_masks()
+        return self
         
         
         
