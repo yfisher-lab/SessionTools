@@ -132,7 +132,7 @@ class Preprocess(ABC):
 
         if write_to_h5:
             
-            self.h5path_motcorr = self.h5path_raw.stem.join('_motcorr.h5')
+            self.h5path_motcorr = pathlib.Path(self.h5path_raw.with_suffix('').as_posix() + '_motcorr.h5')
             with h5py.File(self.h5path_motcorr, 'w') as f:
                 f.create_dataset('data', data=data_corr)
                 f.create_dataset('shifts', data=shifts)
@@ -240,7 +240,7 @@ class EBImagingSession(Preprocess):
                 self.napari_layers[layer.name] = layer.data
         
 
-    def extract_timeseries(self, data=None):
+    def extract_timeseries(self, data=None, max_proj=False):
         self.timeseries = {}
         if data is None:
             data = self.data_corr
@@ -257,7 +257,10 @@ class EBImagingSession(Preprocess):
                 for ch, fr in itertools.product(range(n_ch), range(n_timepoints)):
                     
                     frame = data[ch, fr, :, :, :]
-                    F[ch,r,fr] = frame[mask].mean()
+                    if max_proj:
+                        F[ch,r,fr] = np.amax(frame[mask],axis=0).mean()
+                    else:
+                        F[ch,r,fr] = frame[mask].mean()
             return F
         
         
