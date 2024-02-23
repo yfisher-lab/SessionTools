@@ -285,7 +285,7 @@ class EBImagingSession(Preprocess):
                       add_to_timeseries_dict = True,
                       new_ts_name = None,
                       zscore = True,
-                      reg_other_channel=True):
+                      reg_other_channel=False):
         
         if channel is not None:
             F = self.timeseries[ts_key][channel:channel+1, :, :]
