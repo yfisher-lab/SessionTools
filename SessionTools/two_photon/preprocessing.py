@@ -248,7 +248,7 @@ class EBImagingSession(Preprocess):
         n_ch = data.shape[0]
         n_timepoints = data.shape[1]
         
-        def _extract_ts(masks):
+        def _extract_ts(masks, _max_proj=False):
             n_rois = int(np.amax(masks.ravel()))
             F = np.zeros((n_ch, n_rois, n_timepoints))
             for r in range(n_rois):
@@ -257,15 +257,24 @@ class EBImagingSession(Preprocess):
                 for ch, fr in itertools.product(range(n_ch), range(n_timepoints)):
                     
                     frame = data[ch, fr, :, :, :]
-                    if max_proj:
-                        F[ch,r,fr] = np.amax(frame[mask],axis=0).mean()
+                    # print(mask.shape, frame.shape)
+                    if _max_proj:
+                        _frame = np.amax(frame,axis=0)
+                        _mask = np.amax(mask,axis=0)
+                        # print(mask.shape, frame.shape)
+                        F[ch,r,fr] = _frame[_mask].mean()
+                        # F[ch,r,fr] = np.amax(frame[mask].mean(axis=-1).mean(axis=-1))
                     else:
                         F[ch,r,fr] = frame[mask].mean()
             return F
         
         
         for name, mask_arr in self.napari_labels_layers.items():
-            self.timeseries[name]=_extract_ts(mask_arr)
+            # if name == 'background':
+                
+            #     self.timeseries[name]=_extract_ts(mask_arr, _max_proj=False)
+            # else:
+            self.timeseries[name]=_extract_ts(mask_arr, _max_proj=max_proj)
             
             
     def calculate_zscored_F(self, ts_key,
@@ -274,7 +283,8 @@ class EBImagingSession(Preprocess):
                       other_ts_2_subtract = None,
                       channel = None,
                       add_to_timeseries_dict = True,
-                      new_ts_name = None):
+                      new_ts_name = None,
+                      zscore = True):
         
         if channel is not None:
             F = self.timeseries[ts_key][channel:channel+1, :, :]
@@ -304,7 +314,7 @@ class EBImagingSession(Preprocess):
             if isinstance(background_ts, str):
                 background_ts = self.timeseries[background_ts]
             if exp_detrend:
-                background_ts = np.log(background_ts)
+                background_ts = np.log(background_ts+1E-3)
                 
             background_ts = background_ts*np.ones(F.shape)
                 
@@ -327,15 +337,16 @@ class EBImagingSession(Preprocess):
         
         
         def reg_single_chan(X,y):
-            lr = LinReg().fit(X,y)
-            return y-lr.predict(X)
+            lr = LinReg(positive=True).fit(X,y)
+            return lr.predict(X)
         
         ts_z = np.zeros(F.shape)
+        baseline = np.zeros(F.shape)
         for ch in range(F.shape[0]):
             for roi in range(F.shape[1]):
                 y = F[ch, roi, :]
                 if exp_detrend:
-                    y = np.log(y)
+                    y = np.log(y +1E-3)
                     
                 X = []
                 if background_ts is not None:
@@ -345,16 +356,23 @@ class EBImagingSession(Preprocess):
                     X.append(other_ts_2_subtract[ch,roi,:])
                     
                 if exp_detrend:
-                    X.append(np.array(self.metadata['frame_times']).mean(axis=-1))
+                    X.append(-1*np.array(self.metadata['frame_times']).mean(axis=-1))
             
                 X = np.column_stack(X)    
                 
-                ts_z[ch,roi,:] = reg_single_chan(X,y)
+                
+                baseline[ch,roi,:] = reg_single_chan(X,y)  
+                ts_z[ch,roi,:] = y
+        
         
         if exp_detrend:
             ts_z = np.exp(ts_z)
+            baseline = np.exp(baseline)
             
-        ts_z = sp.stats.zscore(ts_z,axis=-1)
+        if zscore:
+            ts_z = sp.stats.zscore(ts_z-baseline,axis=-1)
+        else:
+            ts_z = ts_z/baseline 
         if add_to_timeseries_dict:
             self.timeseries[new_ts_name] = ts_z
         return ts_z
@@ -368,14 +386,15 @@ class ColumnarRingImagingSession(EBImagingSession):
     def open_napari(self, check_for_existing=True, path=None):
         if check_for_existing:
             if path is None:
-                pass
-            if pathlib.Path.exists():
+                return napari_tools.EB_R4d_Session().new_session(self.ref_img)
+            elif pathlib.Path.exists(path):
                 return napari_tools.EB_R4d_Session().open_existing_session(path)
             else:
                 return napari_tools.EB_R4d_Session().new_session(self.ref_img)
         else:
             return napari_tools.EB_R4d_Session().new_session(self.ref_img)
         
+    
     
 
 class ExVivoRingImagingSession(EBImagingSession):

@@ -54,7 +54,7 @@ def falling_edges(binary_signals, axis=0, prepend=0, append=None):
 def change_default_column_names(df):   
     df.rename(columns = { ' Input 0': ' Start Trigger',
                           ' Input 1': ' Opto Trigger',
-                          ' Input 2': ' FicTrac Cam Exp.',
+                          ' Input 2': ' Pump Trigger',
                           ' Input 3': ' Fictrac Frame Proc.',
                           ' Input 4': ' Heading',
                           ' Input 5': ' Y/Index',
@@ -71,8 +71,9 @@ def align_vr_2p(vr_df,frame_times):
         
     binary_columns = [' Start Trigger', 
                   ' Opto Trigger', 
-                  ' FicTrac Cam Exp.',
+                  ' Pump Trigger',
                   ' FicTrac Frame Proc.']
+    binary_columns = [col for col in binary_columns if col in vr_df.columns]
     
     periodic_columns = [' Heading', 
                         # ' Y/Index', 
@@ -83,7 +84,7 @@ def align_vr_2p(vr_df,frame_times):
     max_voltage = 10
     
     # binarize trigger columns and find rising edges
-    vr_df[binary_columns] = rising_edges(binarize(vr_df[binary_columns], thresh = (3,3,2,3)))
+    # vr_df[binary_columns] = vr_df[binary_columns]
     
     vr_times = vr_df['Time(ms)'].to_numpy().ravel()
     
