@@ -361,7 +361,7 @@ class EBImagingSession(Preprocess):
 
                 if reg_other_channel:
                     if exp_detrend:
-                        X.append(np.log(F[ch-1,roi,:]))
+                        X.append(np.log(F[ch-1,roi,:]+1E-3))
                     else:
                         X.append(F[ch-1,roi,:])
 
