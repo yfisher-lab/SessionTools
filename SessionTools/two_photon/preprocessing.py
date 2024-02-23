@@ -284,7 +284,8 @@ class EBImagingSession(Preprocess):
                       channel = None,
                       add_to_timeseries_dict = True,
                       new_ts_name = None,
-                      zscore = True):
+                      zscore = True,
+                      reg_other_channel=True):
         
         if channel is not None:
             F = self.timeseries[ts_key][channel:channel+1, :, :]
@@ -357,6 +358,13 @@ class EBImagingSession(Preprocess):
                     
                 if exp_detrend:
                     X.append(-1*np.array(self.metadata['frame_times']).mean(axis=-1))
+
+                if reg_other_channel:
+                    if exp_detrend:
+                        X.append(np.log(F[ch-1,roi,:]))
+                    else:
+                        X.append(F[ch-1,roi,:])
+
             
                 X = np.column_stack(X)    
                 
