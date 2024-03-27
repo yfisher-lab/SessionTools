@@ -57,7 +57,7 @@ class Preprocess(ABC):
             
         if fictrac_scan_num is None:
             fictrac_scan_num = int(s[-3:])
-        self.fictrac_pkl_path = self.fictrac_path.as_posix() + f'_scan{fictrac_scan_num}.pkl'
+        self.fictrac_pkl_path = self.fictrac_dir.as_posix() + f'{f}_scan{fictrac_scan_num}.pkl'
         
         # output directory
         output_base_dir = pathlib.PurePath(output_base_dir)
