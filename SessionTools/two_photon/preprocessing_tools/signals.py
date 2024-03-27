@@ -171,4 +171,97 @@ def dff(func_data, baseline_data=None, axis=1):
     # if baseline_data is None:
     #     baseline_data = np.copy(func_data)
         
+def read_fictrac_dat(filename):
+    names = ( 'col',
+         'd rot x (cam)', 'd rot y (cam)', 'd rot z (cam)', 
+         'd rot err (cam)', 
+         'd rot x (lab)', 'd rot y (lab)', 'd rot z (lab)', 
+         'abs rot x (cam)', 'abs rot y (cam)', 'abs rot z (cam)',
+         'abs rot x (lab)', 'abs rot y (lab)', 'abs rot z (lab)',
+         'integ x (lab)', 'integ y (lab)', 
+         'integ heading (lab)', 
+         'movement dir (lab)',
+         'movement speed',
+         'integ forward',
+         'integ side',
+         'timestamp',
+         'seq counter',
+         'd timestamp',
+         'alt. timestamp')
+    return pd.read_csv(filename, names = names)
+
+def extract_fictrac_data(fictrac_df, vr_df, scan_pkl_dict):
+    start_ind = fictrac_df.loc[fictrac_df['col']==scan_pkl_dict['start'][0]].index[0]
     
+    #binarized fictrac frame processes time
+    frame_pin = 1*(vr_df[' FicTrac Frame Proc.']>3)
+    frame_pin_fall_edge = np.ediff1d(frame_pin, to_begin=0)<0
+    
+    n_frames = frame_pin_fall_edge.sum()
+    fictrac_df_scan = fictrac_df[start_ind:start_ind+n_frames]
+    vr_df_ft_frames = vr_df.loc[frame_pin_fall_edge,:]
+    
+    fictrac_df_scan.insert(1, 'Time(ms)', vr_df_ft_frames.loc[:,'Time(ms)'].to_list())
+    return fictrac_df_scan
+
+def align_fictrac_2p(ft_df, frame_times):
+    '''
+    
+    '''
+    
+    
+    
+    periodic_columns = ['d rot x (cam)', 'd rot y (cam)', 'd rot z (cam)', 
+         'd rot err (cam)', 
+         'd rot x (lab)', 'd rot y (lab)', 'd rot z (lab)', 
+         'abs rot x (cam)', 'abs rot y (cam)', 'abs rot z (cam)',
+         'abs rot x (lab)', 'abs rot y (lab)', 'abs rot z (lab)',
+         'integ heading (lab)', 'movement dir (lab)',]
+    
+    orig_columns = ['col',
+                    'seq counter']
+    
+    cartesian_columns = ['integ x (lab)', 'integ y (lab)', 
+                         'movement speed',
+                        'integ forward',
+                        'integ side']
+    
+    
+    ft_times = ft_df['Time(ms)'].to_numpy().ravel()
+    
+    
+    max_time = np.max([ft_times[-1],frame_times[-1]])
+    ft_times[-1] = max_time
+    
+    # # allocate downsampled dataframe
+    ds_ft_df = pd.DataFrame(columns = ft_df.columns, index=np.arange(frame_times.shape[0]))
+    ds_ft_df['Time(ms)'] = frame_times
+    
+    
+    
+    interp_nearest = sp_interp1d(ft_times, ft_df[orig_columns], axis=0, kind='nearest')
+    ds_ft_df[orig_columns] = interp_nearest(frame_times)
+    
+    # interpolate periodic columns
+    # convert to cartesian coordinates to be able to take the average
+  
+    for col in periodic_columns:
+        phi_vec = ft_df[col].to_numpy().ravel()
+        rho_vec = np.ones((ft_df.shape[0],))
+        x,y = pol2cart(rho_vec,phi_vec)
+        ft_df[f'{col}_cartx'] = x
+        ft_df[f'{col}_carty'] = y
+        cartesian_columns.append(f'{col}_cartx')
+        cartesian_columns.append(f'{col}_carty')
+    
+    interp_mean = sp_interp1d(ft_times, ft_df[cartesian_columns], axis=0, kind='linear')
+    ds_ft_df[cartesian_columns] = interp_mean(frame_times)
+    
+    # convert back to polar coordinates
+    for col in periodic_columns:
+        _, ds_ft_df[col] = cart2pol(ds_ft_df[f'{col}_cartx'].to_numpy().ravel(),
+                                    ds_ft_df[f'{col}_carty'].to_numpy().ravel())
+    
+    return ds_ft_df
+    
+

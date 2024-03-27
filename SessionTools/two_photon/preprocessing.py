@@ -20,7 +20,8 @@ class Preprocess(ABC):
     def __init__(self,session_info=None, 
                  bruker_base_dir=BRUKER_BASE_DIR, bruker_dir = None,
                  fictrac_base_dir=FICTRAC_BASE_DIR, fictrac_dir=None,
-                 fictrac_scan_num = None, output_base_dir=OUTPUT_BASE_DIR, **kwargs):
+                 fictrac_scan_num = None, fictrac_dat_file = None,
+                 output_base_dir=OUTPUT_BASE_DIR, **kwargs):
         
         """_summary_
         """
@@ -44,9 +45,15 @@ class Preprocess(ABC):
             
         # set fictrac directories
         if fictrac_dir is None:
-            self.fictrac_path = fictrac_base_dir.joinpath(f'{gd}/{d}/{f}')
+            self.fictrac_dir = fictrac_base_dir.joinpath(f'{gd}/{d}')
         else:
-            self.fictrac_path = pathlib.PurePath(fictrac_dir)
+            self.fictrac_dir = pathlib.PurePath(fictrac_dir)
+            
+        if fictrac_dat_file is None:
+            self.fictrac_path = self.fictrac_dir.joinpath(f'{f}')
+        else:
+            self.fictrac_path = self.fictrac_dir.joinpath(fictrac_dat_file)
+            
             
         if fictrac_scan_num is None:
             fictrac_scan_num = int(s[-3:])
@@ -65,6 +72,8 @@ class Preprocess(ABC):
         
         self.voltage_recording_path = None
         self.voltage_recording_aligned = None
+        
+        self.fictrac_aligned = None
      
         
         
@@ -162,7 +171,22 @@ class Preprocess(ABC):
         
         frame_times = np.array(self.metadata['frame_times']).mean(axis=-1)*1000
         self.voltage_recording_aligned = signals.align_vr_2p(df,frame_times)
-            
+    
+    def align_fictrac(self):
+        """
+        """        
+        
+        with open(self.fictrac_pkl_path, 'rb') as file:
+            ft_scan_info = cloudpickle.load(file)
+        
+        
+        ft_df = signals.extract_fictrac_data(signals.read_fictrac_dat(self.fictrac_path),
+                                            dd.read_csv(self.voltage_recording_path).compute(),
+                                            ft_scan_info)
+        
+        frame_times = np.array(self.metadata['frame_times']).mean(axis=-1)*1000
+        self.fictrac_aligned = signals.align_fictrac_2p(ft_df, frame_times)
+        
     
     @abstractmethod
     def save(self):
