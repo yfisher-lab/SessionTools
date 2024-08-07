@@ -21,7 +21,8 @@ class Preprocess(ABC):
                  bruker_base_dir=BRUKER_BASE_DIR, bruker_dir = None,
                  fictrac_base_dir=FICTRAC_BASE_DIR, fictrac_dir=None,
                  fictrac_scan_num = None, fictrac_dat_file = None,
-                 output_base_dir=OUTPUT_BASE_DIR, **kwargs):
+                 output_base_dir=OUTPUT_BASE_DIR, 
+                 fictrac_pkl_path=None, **kwargs):
         
         """_summary_
         """
@@ -50,14 +51,18 @@ class Preprocess(ABC):
             self.fictrac_dir = pathlib.PurePath(fictrac_dir)
             
         if fictrac_dat_file is None:
-            self.fictrac_path = self.fictrac_dir.joinpath(f'{f}')
+            self.fictrac_path = self.fictrac_dir.joinpath(f'/{f}')
         else:
             self.fictrac_path = self.fictrac_dir.joinpath(fictrac_dat_file)
             
-            
-        if fictrac_scan_num is None:
-            fictrac_scan_num = int(s[-3:])
-        self.fictrac_pkl_path = self.fictrac_dir.as_posix() + f'{f}_scan{fictrac_scan_num}.pkl'
+        if fictrac_pkl_path is None:
+               
+            if fictrac_scan_num is None:
+                fictrac_scan_num = int(s[-3:])
+            self.fictrac_pkl_path = self.fictrac_dir.joinpath(f'{f}_scan{fictrac_scan_num}.pkl')
+        else:
+            self.fictrac_pkl_path = fictrac_pkl_path
+        
         
         # output directory
         output_base_dir = pathlib.PurePath(output_base_dir)
@@ -342,6 +347,7 @@ class EBImagingSession(Preprocess):
                 background_ts = np.log(background_ts+1E-3)
                 
             background_ts = background_ts*np.ones(F.shape)
+            
                 
         if other_ts_2_subtract is not None:
             if isinstance(other_ts_2_subtract, str):
@@ -362,8 +368,18 @@ class EBImagingSession(Preprocess):
         
         
         def reg_single_chan(X,y):
-            lr = LinReg(positive=True).fit(X,y)
-            return lr.predict(X)
+            # lr = LinReg(positive=True).fit(X,y)
+            lr = LinReg(positive=False).fit(X,y)
+            if reg_other_channel:
+                # print(lr.coef_.shape, lr.intercept_)
+                coef = lr.coef_
+                coef[-1] = 1.*coef[-1]
+                # print(coef)
+                
+                return (X*coef[np.newaxis,:]).sum(axis=-1) + lr.intercept_
+                
+            else:
+                return lr.predict(X)
         
         ts_z = np.zeros(F.shape)
         baseline = np.zeros(F.shape)
@@ -376,6 +392,7 @@ class EBImagingSession(Preprocess):
                 X = []
                 if background_ts is not None:
                     X.append(background_ts[ch,roi,:])
+                    # y -= .5*background_ts[ch,roi,:]
                 
                 if other_ts_2_subtract is not None:
                     X.append(other_ts_2_subtract[ch,roi,:])
@@ -384,16 +401,17 @@ class EBImagingSession(Preprocess):
                     X.append(-1*np.array(self.metadata['frame_times']).mean(axis=-1))
 
                 if reg_other_channel:
-                    if exp_detrend:
-                        X.append(np.log(F[ch-1,roi,:]+1E-3))
-                    else:
-                        X.append(F[ch-1,roi,:])
-
+                    if ch<3:
+                        if exp_detrend:
+                            X.append(np.log(F[ch-1,roi,:]+1E-3))
+                        else:
+                            X.append(np.copy(F[ch-1,roi,:]))
+                    
             
                 X = np.column_stack(X)    
                 
                 
-                baseline[ch,roi,:] = reg_single_chan(X,y)  
+                baseline[ch,roi,:] = reg_single_chan(X,y)
                 ts_z[ch,roi,:] = y
         
         
