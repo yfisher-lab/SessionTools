@@ -369,17 +369,38 @@ class EBImagingSession(Preprocess):
         
         def reg_single_chan(X,y):
             # lr = LinReg(positive=True).fit(X,y)
-            lr = LinReg(positive=False).fit(X,y)
-            if reg_other_channel:
-                # print(lr.coef_.shape, lr.intercept_)
-                coef = lr.coef_
-                coef[-1] = 1.*coef[-1]
-                # print(coef)
+            ynans = np.isnan(y)
+            if ynans.any():
+                Xtmp = X[~ynans,:]
+                ytmp = y[~ynans]
                 
-                return (X*coef[np.newaxis,:]).sum(axis=-1) + lr.intercept_
+                # print(Xtmp.shape, ytmp.shape)
+                lr = LinReg(positive=False).fit(Xtmp,ytmp)
                 
+                
+                if reg_other_channel:
+                    raise NotImplementedError
+                else:
+                    ypred = np.zeros_like(y)
+                    ypred[~ynans] = lr.predict(Xtmp)
+                    ypred[ynans] = np.nan
+                    # print(np.isnan(lr.predict(Xtmp)).any())
+                    return ypred
             else:
-                return lr.predict(X)
+                lr = LinReg(positive=False).fit(X,y)
+                
+                
+                    
+                if reg_other_channel:
+                    # print(lr.coef_.shape, lr.intercept_)
+                    coef = lr.coef_
+                    coef[-1] = 1.*coef[-1]
+                    # print(coef)
+                    
+                    return (X*coef[np.newaxis,:]).sum(axis=-1) + lr.intercept_
+                    
+                else:
+                    return lr.predict(X)
         
         ts_z = np.zeros(F.shape)
         baseline = np.zeros(F.shape)
@@ -420,7 +441,7 @@ class EBImagingSession(Preprocess):
             baseline = np.exp(baseline)
             
         if zscore:
-            ts_z = sp.stats.zscore(ts_z-baseline,axis=-1)
+            ts_z = sp.stats.zscore(ts_z-baseline,axis=-1, nan_policy='omit')
         else:
             ts_z = ts_z/baseline 
         if add_to_timeseries_dict:
