@@ -32,6 +32,13 @@ def read_main_xml(fname):
             'y_px': None,
             'x_px': None,
         },
+        'linescan_size': {
+            'frames': None,
+            'channels': None,
+            'y_px_frame': None,
+            'x_px_line': None,
+            'y_px_last_frame': None,
+        },
         'pixel_size': None,
         'laser_power': {},
         'frame_period': None,
@@ -42,7 +49,8 @@ def read_main_xml(fname):
         'preamp_offsets': {},
         'scan_mode': None,
         'bit_depth': None,
-        'frame_times': []
+        'frame_times': [],
+        'rotation': [],
         }
 
     if fname is None:
@@ -53,6 +61,12 @@ def read_main_xml(fname):
     def state_value(key, type_fn=str):
         element = mdata_root.find(f'.//PVStateValue[@key="{key}"]')
         value = element.attrib['value']
+        return type_fn(value)
+
+    # return PVStateValue from specific frame (in line imaging)
+    def frame_value(key, frame_num, type_fn=None):
+        element = mdata_root.findall(f'.//PVStateValue[@key="{key}"]')
+        value = element[frame_num].attrib['value']
         return type_fn(value)
 
     def indexed_value(key, index, type_fn=None, required=True, description=False):
@@ -96,142 +110,14 @@ def read_main_xml(fname):
     data['size']['y_px'] = state_value('linesPerFrame', int)
     data['size']['x_pix'] = state_value('pixelsPerLine', int)
 
-    data['layout']['samples_per_pixel'] = state_value('samplesPerPixel', int)
-
-    data['pixel_size'] = {
-             'x': indexed_value('micronsPerPixel', 'XAxis', float),
-             'y': indexed_value('micronsPerPixel', 'YAxis', float),
-             'z': indexed_value('micronsPerPixel', 'ZAxis', float),
-             }
-
-    for i in range(3):
-        _elem = indexed_value('laserPower', i, float, required=True, description=True)
-        data['laser_power'][_elem[1]]=_elem[0]
-
-    data['frame_period'] = state_value('framePeriod', float)
-    data['line_period'] = state_value('scanLinePeriod', float)
-
-    data['optical_zoom'] = state_value('opticalZoom', float)
-
-    data['pmts'] = {0: indexed_value('pmtGain', 0, float),
-           1: indexed_value('pmtGain', 1, float)}
-
-    data['preamp_filter'] = state_value('preampFilter')
-    preamp_subindex = mdata_root.find('.//PVStateValue[@key="preampOffset"]/SubindexedValues[@index="0"]')
-    data['preamp_offsets'] = {0: preamp_subindex.find('.//SubindexedValue[@subindex="0"]').attrib['value'],
-                              1: preamp_subindex.find('.//SubindexedValue[@subindex="1"]').attrib['value']}
-
-
-    # get all frame times
-    for seq in sequences:
-        _frame_times = []
-        frames = seq.findall('Frame')
-        for frame in frames:
-            _frame_times.append(float(frame.attrib['relativeTime']))
-        data['frame_times'].append(_frame_times)
-
-    # if last sequence is funky
-    num_frames_last_sequence = len(sequences[-1].findall('Frame'))
-    if data['layout']['frames_per_sequence'] != num_frames_last_sequence:
-        _ = data['frame_times'].pop()
-
-
-    return data
-
-def read_linescan_xml(fname):
-    '''
-
-    '''
-
-    data = {
-        'layout': {
-            'sequences': None,
-            'frames_per_sequence': None,
-            'samples_per_pixel': None
-        },
-        'size': {
-            'frames': None,
-            'channels': None,
-            'y_px_frame': None,
-            'x_px_line': None,
-            'y_px_last_frame': None,
-        },
-        'pixel_size': None,
-        'laser_power': {},
-        'frame_period': None,
-        'line_period': None,
-        'optical_zoom': None,
-        'pmts': {},
-        'preamp_filter': None,
-        'preamp_offsets': {},
-        'scan_mode': None,
-        'bit_depth': None,
-        'frame_times': [],
-        'rotation': [],
-        }
-
-    if fname is None:
-        return data
-
-    mdata_root = ElementTree.parse(fname).getroot()
-
-    def state_value(key, type_fn=str):
-        element = mdata_root.find(f'.//PVStateValue[@key="{key}"]')
-        value = element.attrib['value']
-        return type_fn(value)
-
-    def indexed_value(key, index, type_fn=None, required=True, description=False):
-        element = mdata_root.find(f'.//PVStateValue[@key="{key}"]/IndexedValue[@index="{index}"]')
-        if element is None:
-            if required:
-                raise MetadataError('Could not find required key:index of %s:%s' % (key, index))
-            return None
-
-        value = element.attrib['value']
-
-        if description:
-            return type_fn(value), element.attrib['description']
-        else:
-            return type_fn(value)
-
-    def frame_value(key, frame_num, type_fn=None):
-        element = mdata_root.findall(f'.//PVStateValue[@key="{key}"]')
-        value = element[frame_num].attrib['value']
-
-        return type_fn(value)
-
-    data['scan_mode'] = state_value('activeMode',str)
-    data['bit_depth'] = state_value('bitDepth', int)
-
-    sequences = mdata_root.findall('Sequence')
-
-    data['layout']['sequences'] = len(sequences)
-
-    # Frames/sequence should be constant, except for perhaps the last frame.
-    data['layout']['frames_per_sequence'] = len(sequences[0].findall('Frame'))
-
-    if data['layout']['sequences'] == 1:
-        data['size']['frames'] = data['layout']['frames_per_sequence']
-        data['size']['y_px_frame'] = data['size']['y_px_last_frame']
-    else:
-        # If the last sequence has a different number of frames, ignore it.
-        num_frames_last_sequence = len(sequences[-1].findall('Frame'))
-        if data['layout']['frames_per_sequence'] != num_frames_last_sequence:
-            logging.warning('Skipping final stack because it was found with fewer z-planes (%d, expected: %d).',
-                            num_frames_last_sequence, data['layout']['frames_per_sequence'])
-            data['layout']['sequences'] -= 1
-        data['size']['frames'] = data['layout']['sequences']
-
-    data['size']['y_px_last_frame'] = frame_value('linesPerFrame', -1, int)
-    data['size']['x_px_line'] = frame_value('pixelsPerLine', 1, int)
-
+    # linescan sizes
+    data['linescan_size']['y_px_last_frame'] = frame_value('linesPerFrame', -1, int)
+    data['linescan_size']['x_px_line'] = frame_value('pixelsPerLine', 1, int)
     num_frames = len(sequences[0].findall('Frame'))
     if num_frames == 1:
-        data['size']['y_px_frame'] = data['size']['y_px_last_frame']
+        data['linescan_size']['y_px_frame'] = data['size']['y_px_last_frame']
     else:
-        data['size']['y_px_frame'] = 8192 # max number of lines in a line imaging frame
-
-    data['size']['channels'] = len(mdata_root.find('Sequence/Frame').findall('File'))
+        data['linescan_size']['y_px_frame'] = 8192 # max number of lines in a line imaging frame
 
     data['layout']['samples_per_pixel'] = state_value('samplesPerPixel', int)
 
@@ -273,40 +159,6 @@ def read_linescan_xml(fname):
         _ = data['frame_times'].pop()
 
     data['rotation'] = state_value('rotation', float)
-
-    return data
-
-def read_vr_xml(fname):
-    """_summary_
-
-    Args:
-        fname (_type_): _description_
-    """
-    data = {
-        'channels': {},
-        'acquisition_rate': None,
-        'acquisition_time': None,
-        'num_samples_acquired': None,
-        'trigger': None,
-        'trigger_count': None
-    }
-
-    if fname is None:
-        return data
-
-    voltage_root = ElementTree.parse(fname).getroot()
-
-    for signal in voltage_root.findall('Experiment/SignalList/VRecSignal'):
-        channel_num = int(signal.find('Channel').text)
-        channel_name = signal.find('Name').text
-        enabled = signal.find('Enabled').text == 'true'
-        data['channels'][channel_num] = {'name': channel_name, 'enabled': enabled}
-
-    data['acquisition_rate'] = int(voltage_root.find('Experiment/Rate').text) # Hz
-    data['acquisition_time'] = int(voltage_root.find('Experiment/AcquisitionTime').text) # ms
-    data['num_samples_acquired'] = int(voltage_root.find('SamplesAcquired').text)
-    data['trigger'] = voltage_root.find('Experiment/Trigger').text
-    data['trigger_count'] = int(voltage_root.find('Experiment/TriggerCount').text)
 
     return data
 
