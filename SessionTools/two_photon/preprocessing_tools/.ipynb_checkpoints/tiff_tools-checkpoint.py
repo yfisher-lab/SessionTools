@@ -9,7 +9,6 @@ from dask import diagnostics
 import dask.array as da
 
 from skimage.io import imread
-from aicsimageio import AICSImage
 from SessionTools import utilities
 
 logger = logging.getLogger(__name__)
@@ -142,50 +141,4 @@ def convert_to_hdf5(data, hdf5_outname, hdf5_key = '/data', overwrite=False):
         # ensure parent directory exists
         os.makedirs(hdf5_outname.parent, exist_ok=True)
         data.to_hdf5(hdf5_outname, hdf5_key)
-
-def read_linescan(base, linescan_size):
-    samp_rate, total_frames, pixels_per_line, lines_per_frame, last_line = linescan_size['scan_line_period'], linescan_size['frames'], linescan_size['x_px_line'], linescan_size['y_px_frame'], linescan_size['y_px_last_frame']
-
-    def read_image(file):
-            """suppress juliandate reading errors"""
-            with utilities.suppress_output(suppress_stderr=True):
-                return AICSImage(file)
-    
-    sample_image = read_image(str(base) + f'_Cycle00001_Ch1_000001.ome.tif') # use first .ome.tif file in data folder
-    sample = sample_image.get_image_data("CTYX")
-    print(sample.shape)
-    if len(sample.shape)==2: # TODO change false value for line scanning
-        ome_tiff=False
-    elif len(sample.shape)==4:
-        ome_tiff=True
-    else:
-        raise "tiff of unknown shape"
-    
-    num_channels = len(sample)
-
-    data = {}
-    for c in range(num_channels):
-        sample_channel = sample[c]
-
-        # compile data from channel into one array
-        channel_array = np.empty((1, pixels_per_line))
-        for l in range(len(sample_channel)-1):
-            channel_array = np.vstack((channel_array, sample_channel[l]))
-        channel_array = channel_array[1:-1] # remove empty array at the beginning and the last frame
-
-        # remove extra lines in last frame
-        last_frame = sample_channel[-1]
-        last_frame_lines = last_frame[0:last_line]
-        channel_array = np.vstack((channel_array, last_frame_lines))
-
-        data[c] = channel_array
-    
-    if num_channels == 2:
-        channel_names = ['Ch1', 'Ch2']
-        data['Ch1'] = data[0]
-        del data[0]
-        data['Ch2'] = data[1]
-        del data[1]
-
-    return data
         

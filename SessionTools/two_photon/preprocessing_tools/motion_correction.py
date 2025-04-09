@@ -1,7 +1,7 @@
 
 import os
 
-from joblib import Parallel, delayed
+# from joblib import Parallel, delayed
 
 import skimage
 from skimage.registration import phase_cross_correlation

@@ -38,6 +38,7 @@ def read_main_xml(fname):
             'y_px_frame': None,
             'x_px_line': None,
             'y_px_last_frame': None,
+            'scan_line_period': None,
         },
         'pixel_size': None,
         'laser_power': {},
@@ -108,16 +109,19 @@ def read_main_xml(fname):
 
     data['size']['channels'] = len(mdata_root.find('Sequence/Frame').findall('File'))
     data['size']['y_px'] = state_value('linesPerFrame', int)
-    data['size']['x_pix'] = state_value('pixelsPerLine', int)
+    data['size']['x_px'] = state_value('pixelsPerLine', int)
 
     # linescan sizes
+    data['linescan_size']['frames'] = data['layout']['frames_per_sequence']
+    data['linescan_size']['channels'] = len(mdata_root.find('Sequence/Frame').findall('File'))
     data['linescan_size']['y_px_last_frame'] = frame_value('linesPerFrame', -1, int)
     data['linescan_size']['x_px_line'] = frame_value('pixelsPerLine', 1, int)
     num_frames = len(sequences[0].findall('Frame'))
     if num_frames == 1:
-        data['linescan_size']['y_px_frame'] = data['size']['y_px_last_frame']
+        data['linescan_size']['y_px_frame'] = data['linescan_size']['y_px_last_frame']
     else:
         data['linescan_size']['y_px_frame'] = 8192 # max number of lines in a line imaging frame
+    data['linescan_size']['scan_line_period'] = state_value('scanLinePeriod', float)
 
     data['layout']['samples_per_pixel'] = state_value('samplesPerPixel', int)
 
@@ -242,11 +246,11 @@ def read(basename_input, output_fname=None):
     scan_data = read_main_xml(fname_xml)
 
     if not os.path.exists(fname_vr_xml):
-        vr_data = read_vr_xml(None)
+        vr_data = None
         MetadataWarning("voltage recording file %s does not exist, skipping" % fname_vr_xml)
     else:
         logger.info('\n%s' % fname_vr_xml)
-        vr_data = read_vr_xml(fname_vr_xml)
+        vr_data = None
 
     if not os.path.exists(fname_mp_xml):
         mp_data = read_mp_xml(None)

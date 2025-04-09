@@ -9,7 +9,7 @@ import numpy as np
 import scipy as sp
 import napari
 import cloudpickle
-from sklearn.linear_model import LinearRegression as LinReg
+# from sklearn.linear_model import LinearRegression as LinReg
 
 from .preprocessing_tools import *
 from .params import *
