@@ -121,7 +121,7 @@ def read_main_xml(fname):
         data['linescan_size']['y_px_frame'] = data['linescan_size']['y_px_last_frame']
     else:
         data['linescan_size']['y_px_frame'] = 8192 # max number of lines in a line imaging frame
-    data['linescan_size']['scan_line_period'] = state_value('scanLinePeriod', float)
+    data['linescan_size']['scan_line_period'] = frame_value('scanLinePeriod', 1, float)
 
     data['layout']['samples_per_pixel'] = state_value('samplesPerPixel', int)
 
