@@ -115,7 +115,11 @@ def read_main_xml(fname):
     data['linescan_size']['frames'] = data['layout']['frames_per_sequence']
     data['linescan_size']['channels'] = len(mdata_root.find('Sequence/Frame').findall('File'))
     data['linescan_size']['y_px_last_frame'] = frame_value('linesPerFrame', -1, int)
-    data['linescan_size']['x_px_line'] = frame_value('pixelsPerLine', 1, int)
+    data['linescan_size']['x_px_line'] = state_value('pixelsPerLine', int)
+    if mdata_root.findall(f'.//Frame//PVStateValue[@key="pixelsPerLine"]'):
+        data['linescan_size']['x_px_line'] = frame_value('pixelsPerLine', 1, int)
+    else:
+        data['linescan_size']['x_px_line'] = data['size']['x_px']
     num_frames = len(sequences[0].findall('Frame'))
     if num_frames == 1:
         data['linescan_size']['y_px_frame'] = data['linescan_size']['y_px_last_frame']
