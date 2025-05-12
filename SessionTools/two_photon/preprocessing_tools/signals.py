@@ -59,7 +59,8 @@ def change_default_column_names(df):
                           ' Input 4': ' Heading',
                           ' Input 5': ' Y/Index',
                           ' Input 6': ' Arena DAC1',
-                          ' Input 7': ' Arena DAC2'},
+                          ' Input 7': ' Arena DAC2',
+                          ' Arena DAC': ' Arena DAC1'},
               inplace=True)
         
     
@@ -67,6 +68,8 @@ def align_vr_2p(vr_df,frame_times):
     
     # backwards compatibility
     if ' Input 7' in vr_df.columns:
+        change_default_column_names(vr_df)
+    elif ' Arena DAC' in vr_df.columns: # for Galadriel data
         change_default_column_names(vr_df)
         
     binary_columns = [' Start Trigger', 
@@ -79,8 +82,10 @@ def align_vr_2p(vr_df,frame_times):
                         # ' Y/Index', 
                         ' Arena DAC1']#, 
                         # ' Arena DAC2']
+    periodic_columns = [col for col in periodic_columns if col in vr_df.columns]
     
     orig_columns = [' Y/Index', ' Arena DAC2']
+    orig_columns = [col for col in orig_columns if col in vr_df.columns]
     max_voltage = 10
     
     # binarize trigger columns and find rising edges
@@ -99,31 +104,34 @@ def align_vr_2p(vr_df,frame_times):
     
     #interpolate binary columns
     # take cummulative sum, take nearest value, then take difference
-    interp_nearest = sp_interp1d(vr_times, np.cumsum(vr_df[binary_columns],axis=0), axis=0, kind='nearest')
-    ds_vr_df[binary_columns] = np.diff(interp_nearest(frame_times),axis=0, prepend=0)
+    if binary_columns:
+        interp_nearest = sp_interp1d(vr_times, np.cumsum(vr_df[binary_columns],axis=0), axis=0, kind='nearest')
+        ds_vr_df[binary_columns] = np.diff(interp_nearest(frame_times),axis=0, prepend=0)
     
-    interp_nearest = sp_interp1d(vr_times, vr_df[orig_columns], axis=0, kind='nearest')
-    ds_vr_df[orig_columns] = interp_nearest(frame_times)
+    if orig_columns:
+        interp_nearest = sp_interp1d(vr_times, vr_df[orig_columns], axis=0, kind='nearest')
+        ds_vr_df[orig_columns] = interp_nearest(frame_times)
     
     # interpolate periodic columns
     # convert to cartesian coordinates to be able to take the average
-    cartesian_columns = []    
-    for col in periodic_columns:
-        phi_vec = np.maximum(0, 2*np.pi*vr_df[col].to_numpy().ravel()/max_voltage)
-        rho_vec = np.ones((vr_df.shape[0],))
-        x,y = pol2cart(rho_vec,phi_vec)
-        vr_df[f'{col}_cartx'] = x
-        vr_df[f'{col}_carty'] = y
-        cartesian_columns.append(f'{col}_cartx')
-        cartesian_columns.append(f'{col}_carty')
+    if periodic_columns:
+        cartesian_columns = []    
+        for col in periodic_columns:
+            phi_vec = np.maximum(0, 2*np.pi*vr_df[col].to_numpy().ravel()/max_voltage)
+            rho_vec = np.ones((vr_df.shape[0],))
+            x,y = pol2cart(rho_vec,phi_vec)
+            vr_df[f'{col}_cartx'] = x
+            vr_df[f'{col}_carty'] = y
+            cartesian_columns.append(f'{col}_cartx')
+            cartesian_columns.append(f'{col}_carty')
+        
+        interp_mean = sp_interp1d(vr_times, vr_df[cartesian_columns], axis=0, kind='linear')
+        ds_vr_df[cartesian_columns] = interp_mean(frame_times)
     
-    interp_mean = sp_interp1d(vr_times, vr_df[cartesian_columns], axis=0, kind='linear')
-    ds_vr_df[cartesian_columns] = interp_mean(frame_times)
-    
-    # convert back to polar coordinates
-    for col in periodic_columns:
-        _, ds_vr_df[col] = cart2pol(ds_vr_df[f'{col}_cartx'].to_numpy().ravel(),
-                                    ds_vr_df[f'{col}_carty'].to_numpy().ravel())
+        # convert back to polar coordinates
+        for col in periodic_columns:
+            _, ds_vr_df[col] = cart2pol(ds_vr_df[f'{col}_cartx'].to_numpy().ravel(),
+                                        ds_vr_df[f'{col}_carty'].to_numpy().ravel())
     
     return ds_vr_df
     
@@ -263,5 +271,3 @@ def align_fictrac_2p(ft_df, frame_times):
                                     ds_ft_df[f'{col}_carty'].to_numpy().ravel())
     
     return ds_ft_df
-    
-

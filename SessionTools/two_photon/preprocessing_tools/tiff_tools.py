@@ -7,6 +7,7 @@ import numpy as np
 import dask
 from dask import diagnostics
 import dask.array as da
+import h5py
 
 from skimage.io import imread
 from aicsimageio import AICSImage
@@ -164,8 +165,8 @@ def read_linescan(base, linescan_size):
     num_channels = len(sample)
 
     data = {}
-    for c in range(num_channels):
-        sample_channel = sample[c]
+    for ch in range(num_channels):
+        sample_channel = sample[ch]
 
         # compile data from channel into one array
         channel_array = np.empty((1, pixels_per_line))
@@ -178,14 +179,40 @@ def read_linescan(base, linescan_size):
         last_frame_lines = last_frame[0:last_line]
         channel_array = np.vstack((channel_array, last_frame_lines))
 
-        data[c] = channel_array
+        data[ch] = channel_array
     
     if num_channels == 2:
-        channel_names = ['Ch1', 'Ch2']
+        # channel_names = ['Ch1', 'Ch2']
         data['Ch1'] = data[0]
         del data[0]
         data['Ch2'] = data[1]
         del data[1]
 
     return data
+
+def convert_linescan_to_hdf5(data, hdf5_outname, overwrite=False):
+    """_summary_
+
+    Args:
+        data (dictionary): dictionary with linescan tiff arrays. Each key = one channel
+        hdf5_outname (string): full name of hdf5 file with directory
+    """
+    if isinstance(hdf5_outname,str):
+        hdf5_outname = pathlib.Path(hdf5_outname)
+    
+    if os.path.exists(hdf5_outname):
+        if overwrite:
+            logger.info(f'{hdf5_outname} exists. Overwriting')
+            os.remove(hdf5_outname)
+        else:
+            raise TiffToolsError(f'{hdf5_outname} exists. To overwrite set overwrite=True')
+    
+    with diagnostics.ProgressBar():    
+        logger.info('Writing data to %s', hdf5_outname)
+        # ensure parent directory exists
+        os.makedirs(hdf5_outname.parent, exist_ok=True)
+        f = h5py.File(hdf5_outname, 'w')
+        for key in data:
+            dset = f.create_dataset(key, data=data[key])
+        f.close()
         
