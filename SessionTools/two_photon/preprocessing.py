@@ -7,6 +7,7 @@ import dask.dataframe as dd
 import h5py
 import numpy as np
 import scipy as sp
+import pandas as pd
 import napari
 import cloudpickle
 from sklearn.linear_model import LinearRegression as LinReg
@@ -233,7 +234,8 @@ class EBImagingSession(Preprocess):
     def from_file(cls, filename):
         
         with open(filename, 'rb') as file:
-            inst = cloudpickle.load(file) 
+            inst = pd.read_pickle(file)
+            # inst = cloudpickle.load(file) 
         # loaded_dict = json.loads(loaded_data)
         # inst = cls(**loaded_dict)
         
@@ -244,7 +246,7 @@ class EBImagingSession(Preprocess):
         return inst
         
     
-    
+     
     def open_napari(self, check_for_existing=False, path=None):
         if check_for_existing:
             if path is None:
@@ -258,6 +260,9 @@ class EBImagingSession(Preprocess):
     
     def save_napari(self, nap, overwrite=True):
         nap.save_layers(self.napari_output_path)
+
+    def napari_pickle_noviewer(self, filename):
+        napari_tools.EBSession().topickle_noviewer(self.ref_img, filename)
     
     def get_layers(self, nap):
         self.napari_labels_layers = {}

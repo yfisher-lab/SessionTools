@@ -188,7 +188,7 @@ def read_fictrac_dat(filename):
          'seq counter',
          'd timestamp',
          'alt. timestamp')
-    return pd.read_csv(filename, names = names)
+    return pd.read_csv(filename, names = names, encoding_errors='ignore', low_memory=False)
 
 def extract_fictrac_data(fictrac_df, vr_df, scan_pkl_dict):
     start_ind = fictrac_df.loc[fictrac_df['col']==scan_pkl_dict['start'][0]].index[0]
@@ -246,7 +246,7 @@ def align_fictrac_2p(ft_df, frame_times):
     # convert to cartesian coordinates to be able to take the average
   
     for col in periodic_columns:
-        phi_vec = ft_df[col].to_numpy().ravel()
+        phi_vec = ft_df[col].to_numpy(dtype=float).ravel()
         rho_vec = np.ones((ft_df.shape[0],))
         x,y = pol2cart(rho_vec,phi_vec)
         ft_df[f'{col}_cartx'] = x
