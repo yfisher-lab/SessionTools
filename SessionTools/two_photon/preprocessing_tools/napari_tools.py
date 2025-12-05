@@ -152,16 +152,27 @@ class EBSession:
             return napari_layers
 
     def topickle_noviewer(self, ref_img, filename):
-        napari_layers = {'ref_ch1': ref_img[0,:,:,:],
-                         'ref_ch1_maxp': ref_img[0,:,:,:].max(axis=0),
-                         'ref_ch2': ref_img[1,:,:,:],
-                         'ref_ch2_maxp': ref_img[1,:,:,:].max(axis=0),
-                         'n_ch': self.n_ch,
-                         'ref_img': ref_img,
-                         'inner_ring': 0*ref_img[0,:,:,:].astype(int),
-                         'outer_ring': 0*ref_img[0,:,:,:].astype(int),
-                         'background': 0*ref_img[0,:,:,:].astype(int),
-                         }
+
+        if ref_img.shape[0] == 1:
+            napari_layers = {'ref_ch1': ref_img[0,:,:,:],
+                            'ref_ch1_maxp': ref_img[0,:,:,:].max(axis=0),
+                            'n_ch': ref_img.shape[0],
+                            'ref_img': ref_img,
+                            'inner_ring': 0*ref_img[0,:,:,:].astype(int),
+                            'outer_ring': 0*ref_img[0,:,:,:].astype(int),
+                            'background': 0*ref_img[0,:,:,:].astype(int),
+                            }
+        else:
+            napari_layers = {'ref_ch1': ref_img[0,:,:,:],
+                            'ref_ch1_maxp': ref_img[0,:,:,:].max(axis=0),
+                            'ref_ch2': ref_img[1,:,:,:],
+                            'ref_ch2_maxp': ref_img[1,:,:,:].max(axis=0),
+                            'n_ch': ref_img.shape[0],
+                            'ref_img': ref_img,
+                            'inner_ring': 0*ref_img[0,:,:,:].astype(int),
+                            'outer_ring': 0*ref_img[0,:,:,:].astype(int),
+                            'background': 0*ref_img[0,:,:,:].astype(int),
+                            }
         with open(filename, 'wb') as file:
             cloudpickle.dump(napari_layers,file)
         

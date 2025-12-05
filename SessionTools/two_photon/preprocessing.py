@@ -218,8 +218,8 @@ class EBImagingSession(Preprocess):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.napari_labels_layers = None
-        self.napari_layers = None
+        self.napari_labels_layers = {}
+        self.napari_layers = {}
         self.timeseries = None
         
         
