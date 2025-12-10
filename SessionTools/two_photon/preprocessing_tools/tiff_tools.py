@@ -22,7 +22,8 @@ def read(base, size, layout, first_chan=1,):
     # dtype = read_file(base, 0, channel, 0).dtype
 
     num_cycles, num_z_planes, num_ch = layout['sequences'], size['z_planes'], size['channels']
-    
+    frames_per_sequence = layout['frames_per_sequence']
+    # print(f'num_cycles: {num_cycles}, num_z_planes: {num_z_planes}, num_ch: {num_ch}')
     def skimread(file):
         """suppress juliandate reading errors"""
         with utilities.suppress_output(suppress_stderr=True):
@@ -31,14 +32,16 @@ def read(base, size, layout, first_chan=1,):
     if num_cycles == 1:
         cycle = 1
         frame=2
+        no_z = True
     else:
         cycle = 2
         frame =1
+        no_z = False
     
     # ch = first_chan
     sample = skimread(str(base) + f'_Cycle{cycle:05d}_Ch{first_chan}_{frame:06d}.ome.tif')
     # print(sample)
-    print(sample.shape)
+    # print('sample', sample.shape)
     if len(sample.shape)==2:
         ome_tiff=False
     elif len(sample.shape)==3:
@@ -46,37 +49,47 @@ def read(base, size, layout, first_chan=1,):
     else:
         raise "tiff of unknown shape"
         
-                      
+                 
     filenames = []
+    if no_z:
+        frames = frames_per_sequence+1
+    else:
+        frames = num_z_planes+1
     if not ome_tiff:
         for cycle in range(1,num_cycles+1):
             _filenames = []
-            for frame in range(1,num_z_planes+1):
+            for frame in range(1,frames+1):
                 _frame = []
-                for ch in range(first_chan,num_ch+first_chan+1):
+                for ch in range(first_chan,num_ch+1):
                     _frame.append(str(base) + f'_Cycle{cycle:05d}_Ch{ch}_{frame:06d}.ome.tif')
                 _filenames.append(_frame)
             # filenames[cycle].append(str(basename_input) + f'_Cycle{cycle+1:05d}_Ch{channel}_{frame+1:06d}.ome.tif')
-            filenames.append(_filenames)    
-        filenames[0][0][0] = filenames[0][1][0]    
+            filenames.append(_filenames)
+        if num_z_planes==1:
+            filenames[0][0][0] = filenames[0][1][0]
+        else:    
+            filenames[1][0][0] = filenames[0][0][0]    
     else:
         frame=1
         for cycle in range(1,num_cycles+1):
             _filenames = []
-            for ch in range(first_chan,num_ch+first_chan+1):
+            for ch in range(first_chan,num_ch+1):
                 _frame = str(base) + f'_Cycle{cycle:05d}_Ch{ch}_{frame:06d}.ome.tif'
                 _filenames.append(_frame)
             # filenames[cycle].append(str(basename_input) + f'_Cycle{cycle+1:05d}_Ch{channel}_{frame+1:06d}.ome.tif')
             filenames.append(_filenames)   
         
-        
+    # print(len(filenames), len(filenames[0]), len(filenames[0][0]))
         
     
     logger.info('Found tiff files (channels: %i, frames: %i, z_planes: %i' % (num_cycles, num_z_planes, num_ch))
     
     def read_one_image(block_id, filenames=filenames, error_shape=None):
-        # print(block_id)
-        path = filenames[block_id[1]][block_id[2]][block_id[0]]
+        # print(block_id[0], block_id[1], block_id[2])
+        if no_z:
+            path = filenames[block_id[2]][block_id[1]][block_id[0]]
+        else:
+            path = filenames[block_id[1]][block_id[2]][block_id[0]]
         try:
             image = skimread(path)
         except:
@@ -92,14 +105,29 @@ def read(base, size, layout, first_chan=1,):
     
     logger.info('Mapping dask array...')
     if not ome_tiff:
-        sample = skimread(filenames[0][0][0])
-        data = da.map_blocks(
-            read_one_image,
-            dtype=sample.dtype,
-            chunks=((1,)*num_ch,
-                    (1,)*num_cycles, 
-                    (1,)*num_z_planes, 
-                    *sample.shape)
+        
+        if no_z:
+            sample = skimread(filenames[0][1][0])
+        else:
+            sample = skimread(filenames[1][0][0])
+        
+        if no_z:
+            data = da.map_blocks(
+                read_one_image,
+                dtype=sample.dtype,
+                chunks=((1,)*num_ch,
+                        (1,)*frames, 
+                        (1,)*num_cycles, 
+                        *sample.shape)
+            )
+        else:
+            data = da.map_blocks(
+                read_one_image,
+                dtype=sample.dtype,
+                chunks=((1,)*num_ch,
+                        (1,)*num_cycles,  
+                        (1,)*num_z_planes, 
+                        *sample.shape)
             )
         
     else:
@@ -140,5 +168,6 @@ def convert_to_hdf5(data, hdf5_outname, hdf5_key = '/data', overwrite=False):
         logger.info('Writing data to %s', hdf5_outname)
         # ensure parent directory exists
         os.makedirs(hdf5_outname.parent, exist_ok=True)
+        # print(data.shape)
         data.to_hdf5(hdf5_outname, hdf5_key)
         
