@@ -424,7 +424,11 @@ class EBImagingSession(Preprocess):
                     X.append(other_ts_2_subtract[ch,roi,:])
                     
                 if exp_detrend:
-                    X.append(-1*np.array(self.metadata['frame_times']).mean(axis=-1))
+                    frame_times = np.array(self.metadata['frame_times'])
+                    if frame_times.shape[0]==1:
+                        X.append(-1*np.concatenate(([0],frame_times.ravel())))
+                    else:
+                        X.append(-1*np.array(self.metadata['frame_times']).mean(axis=-1))
 
                 if reg_other_channel:
                     if ch<3:

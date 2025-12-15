@@ -77,7 +77,7 @@ class EBSession:
             for ch in range(1,self.n_ch):
                 _ch = ch+1
                 self.viewer.add_image(np.squeeze(ref_img[ch,:,:,:]), name = f'ref_ch{_ch}')
-                self.viewer.add_image(np.squeeze(ref_img[ch,:,:,:]).max(axis=0), name = f'ref_ch{_ch}_maxp')
+                self.viewer.add_image(np.squeeze(ref_img[ch,:,:,:]).max(axis=0,keepdims=True), name = f'ref_ch{_ch}_maxp')
         self._add_rings()
         return self
         
