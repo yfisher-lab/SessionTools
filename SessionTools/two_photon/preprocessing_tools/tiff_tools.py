@@ -111,7 +111,7 @@ def read(base, size, layout, first_chan=1,):
         if no_z:
             sample = skimread(filenames[0][1][0])
         else:
-            sample = skimread(filenames[1][0][0])
+            sample = skimread(filenames[0][0][0])
         
         if no_z:
             data = da.map_blocks(
