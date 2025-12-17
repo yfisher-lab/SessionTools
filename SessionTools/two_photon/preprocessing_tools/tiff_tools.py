@@ -37,6 +37,8 @@ def read(base, size, layout, first_chan=1,):
         cycle = 2
         frame =1
         no_z = False
+        
+        print('num_cycles > 1, assuming z stacks')
     
     # ch = first_chan
     sample = skimread(str(base) + f'_Cycle{cycle:05d}_Ch{first_chan}_{frame:06d}.ome.tif')
