@@ -116,7 +116,7 @@ class Preprocess(ABC):
                                         self.metadata['size'],
                                         self.metadata['layout'],
                                         first_chan=first_chan)
-            
+            print(tiff_data.shape)
             tiff_tools.convert_to_hdf5(tiff_data, self.h5path_raw, overwrite=True)
         
            

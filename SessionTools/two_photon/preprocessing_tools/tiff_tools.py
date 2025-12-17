@@ -43,7 +43,7 @@ def read(base, size, layout, first_chan=1,):
     # ch = first_chan
     sample = skimread(str(base) + f'_Cycle{cycle:05d}_Ch{first_chan}_{frame:06d}.ome.tif')
     # print(sample)
-    # print('sample', sample.shape)
+    print('sample', sample.shape)
     if len(sample.shape)==2:
         ome_tiff=False
     elif len(sample.shape)==3:
@@ -56,13 +56,13 @@ def read(base, size, layout, first_chan=1,):
     if no_z:
         frames = frames_per_sequence+1
     else:
-        frames = num_z_planes+1
+        frames = num_z_planes
     if not ome_tiff:
         for cycle in range(1,num_cycles+1):
             _filenames = []
             for frame in range(1,frames+1):
                 _frame = []
-                for ch in range(first_chan,num_ch+1):
+                for ch in range(first_chan,first_chan+num_ch+1):
                     _frame.append(str(base) + f'_Cycle{cycle:05d}_Ch{ch}_{frame:06d}.ome.tif')
                 _filenames.append(_frame)
             # filenames[cycle].append(str(basename_input) + f'_Cycle{cycle+1:05d}_Ch{channel}_{frame+1:06d}.ome.tif')
@@ -70,7 +70,7 @@ def read(base, size, layout, first_chan=1,):
         if num_z_planes==1:
             filenames[0][0][0] = filenames[0][1][0]
         else:    
-            filenames[1][0][0] = filenames[0][0][0]    
+            filenames[0][0][0] = filenames[0][1][0]    
     else:
         frame=1
         for cycle in range(1,num_cycles+1):
