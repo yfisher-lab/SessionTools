@@ -9,7 +9,7 @@ from dask import diagnostics
 import dask.array as da
 
 from skimage.io import imread
-from SessionTools import utilities
+from src import utilities
 
 logger = logging.getLogger(__name__)
 

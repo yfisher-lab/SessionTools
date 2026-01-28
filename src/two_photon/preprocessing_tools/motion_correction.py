@@ -10,7 +10,7 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 from scipy.ndimage import shift as spshift
 
-import SessionTools as st
+import src as st
 
 
 def make_ref_img(data, ref_channel):
@@ -63,6 +63,7 @@ def apply_shifts(data_corr, shift_results):
     diffphases = errors = np.nan*np.zeros((data_corr.shape[1], data_corr.shape[2]))
     
     for (f, z, shifted_data, shift, error, diffphase) in shift_results:
+        print(shift.shape)
         shifts[:,f,z] = shift
         errors[f,z] = error
         diffphases[f,z] = diffphase
