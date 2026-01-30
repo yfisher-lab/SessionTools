@@ -1,0 +1,24 @@
+Metadata-Version: 2.4
+Name: SessionTools
+Version: 0.0.1
+Summary: Drosophila central complex imaging and behavior analysis
+Author-email: Mark Plitt <markplitt@gmail.com>
+License: BSD
+Project-URL: Homepage, https://github.com/yfisher-lab/SessionTools
+Requires-Python: >=3.11
+Requires-Dist: dask
+Requires-Dist: h5py
+Requires-Dist: numpy
+Requires-Dist: pandas
+Requires-Dist: tables
+Requires-Dist: scikit-learn
+Requires-Dist: scikit-image
+Requires-Dist: scipy
+Requires-Dist: tifffile
+Requires-Dist: yapf
+Requires-Dist: ipython
+Requires-Dist: jupyterlab
+Requires-Dist: matplotlib
+Requires-Dist: napari
+Requires-Dist: cloudpickle
+Requires-Dist: pyarrow

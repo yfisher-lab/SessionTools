@@ -1,0 +1,16 @@
+dask
+h5py
+numpy
+pandas
+tables
+scikit-learn
+scikit-image
+scipy
+tifffile
+yapf
+ipython
+jupyterlab
+matplotlib
+napari
+cloudpickle
+pyarrow

@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d as sp_interp1d
 
-from src.utilities import pol2cart, cart2pol
+from SessionTools.utilities import pol2cart, cart2pol
 
 def binarize(signals, thresh = 3):
     
