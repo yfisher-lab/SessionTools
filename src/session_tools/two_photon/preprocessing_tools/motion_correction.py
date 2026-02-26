@@ -10,7 +10,7 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 from scipy.ndimage import shift as spshift
 
-import SessionTools as st
+import session_tools as st
 
 
 def make_ref_img(data, ref_channel):
